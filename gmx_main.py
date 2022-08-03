@@ -1,3 +1,6 @@
+'''
+mpiexec -n 5 `which python` -m mpi4py gmx_main.py
+'''
 import sys, os
 import run_alpha
 import gmxapi as gmx
@@ -13,9 +16,12 @@ original_argv = sys.argv if argv is None else argv
 args_to_main = flags_parser(original_argv)
 
 flags.DEFINE_boolean('run_moldyn', True, 'Run GROMACS simulation')
-
-# flags.DEFINE_integer('cores', os.cpu_count(),
-#                      'The total number of cores allocated for the job.')
+flags.DEFINE_integer('cores', os.cpu_count(),
+                     'The total number of cores allocated for the job.')
+flags.DEFINE_integer('ensemble_num', 1,
+                    'Number of md runs per predicted model.')
+flags.DEFINE_float('maxh', 0.01,
+                   'Terminate md run after 0.99 times this time (hours).')
 
 def read_flags(inp_params):
     for (key, value) in inp_params.items():
@@ -43,8 +49,10 @@ def run_gmx(alphafold_outdir):
     model_runners = get_model_names()
     for model in model_runners:
         pdb_model = os.path.join(alphafold_outdir, model)
-        gmx_routines.gmx_pipeline(pdb_model)
-        # a = gmx_routines.gmx_pipeline(pdb_model)
+        gmx_routines.gmx_pipeline(pdb_model, FLAGS.ensemble_num, FLAGS.maxh)
+        print("="*10)
+        print(f"Finished mdruns for model {pdb_model}" )
+        print("="*10)
 
 @gmx.function_wrapper(output={'pdb_str': str})
 def run_alphafold(required_args: dict, output):

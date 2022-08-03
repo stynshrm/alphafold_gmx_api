@@ -33,7 +33,6 @@ MODEL_PRESETS = {
 MODEL_PRESETS['monomer_casp14'] = MODEL_PRESETS['monomer']
 
 cores = os.cpu_count()
-maxh = 0.01
 allocation_size = cores
 
 try:
@@ -118,27 +117,27 @@ def gmx_minimize(min_input_files):
     md_run_path = os.path.dirname(md.output.trajectory.result())
     return [os.path.join(md_run_path, output_list['-c']), min_input_files[1]]
 
-def gmx_md(md_input_files):
-    N = 3
-    maxh=0.01
+
+def gmx_md(md_input_files, ensemble_num, maxh):
     grompp_input_files = {'-f': '/Users/ssharma/Wrk/gmx_API/api_alpha/alphafold-2.2.0/test_flags/output_dir/grompp.mdp',
                           '-c': md_input_files[0],
                           '-p': md_input_files[1]}
     grompp = gmx.commandline_operation(
         'gmx',
         ['grompp'],
-        input_files=[grompp_input_files] * N,
+        input_files=[grompp_input_files] * ensemble_num,
         output_files={'-o': 'run.tpr'})
     tpr_input = grompp.output.file['-o'].result()
     input_list = gmx.read_tpr(tpr_input)
     md = gmx.mdrun(input_list, runtime_args={'-maxh': str(maxh)})
     md.run()
 
-def gmx_pipeline(inp_model):
+
+def gmx_pipeline(inp_model, ensemble_num, maxh):
     topol_prot = create_top(inp_model)
     topol_solv = solvate(topol_prot)
     minimized_prot = gmx_minimize(topol_solv)
     if FLAGS.run_moldyn:
-        gmx_md(minimized_prot)
-        print("="*10) 
+        gmx_md(minimized_prot, ensemble_num, maxh)
+
 
